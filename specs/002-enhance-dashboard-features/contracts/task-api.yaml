@@ -1,0 +1,366 @@
+openapi: 3.0.3
+info:
+  title: Enhanced Task API
+  description: API for managing tasks with enhanced features (priorities, tags, due dates, recurring tasks)
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000
+    description: Development server
+paths:
+  /api/{user_id}/tasks:
+    get:
+      summary: Get all tasks for a user with enhanced filtering and sorting
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User identifier
+        - name: priority
+          in: query
+          schema:
+            type: string
+            enum: [high, medium, low]
+          description: Filter by priority level
+        - name: tag
+          in: query
+          schema:
+            type: string
+          description: Filter by specific tag
+        - name: due_before
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter tasks with due date before specified date
+        - name: due_after
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter tasks with due date after specified date
+        - name: completed
+          in: query
+          schema:
+            type: boolean
+          description: Filter by completion status
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [due_date, priority, created_at, title]
+          description: Sort by specified field
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+          description: Sort order (ascending or descending)
+      responses:
+        '200':
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      summary: Create a new task with enhanced fields
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User identifier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskRequest'
+      responses:
+        '201':
+          description: Task created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/{user_id}/tasks/{task_id}:
+    get:
+      summary: Get a specific task
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User identifier
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Task identifier
+      responses:
+        '200':
+          description: Task details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update a task with enhanced fields
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User identifier
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Task identifier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTaskRequest'
+      responses:
+        '200':
+          description: Task updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete a task
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User identifier
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Task identifier
+      responses:
+        '200':
+          description: Task deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    Task:
+      type: object
+      required:
+        - id
+        - title
+        - completed
+        - user_id
+        - priority
+        - tags
+        - recurring
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the task
+        title:
+          type: string
+          description: Task title
+        description:
+          type: string
+          nullable: true
+          description: Optional task description
+        completed:
+          type: boolean
+          description: Whether the task is completed
+        user_id:
+          type: string
+          description: User identifier
+        priority:
+          type: string
+          enum: [high, medium, low]
+          default: medium
+          description: Priority level of the task
+        tags:
+          type: array
+          items:
+            type: string
+          description: Array of category tags
+        due_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: Due date and time for the task
+        recurring:
+          type: boolean
+          default: false
+          description: Whether the task repeats
+        recurrence_pattern:
+          type: string
+          enum: [daily, weekly, monthly]
+          nullable: true
+          description: Pattern for recurrence (only when recurring is true)
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp of creation
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp of last update
+    CreateTaskRequest:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          description: Task title
+        description:
+          type: string
+          description: Optional task description
+        priority:
+          type: string
+          enum: [high, medium, low]
+          default: medium
+          description: Priority level of the task
+        tags:
+          type: array
+          items:
+            type: string
+          description: Array of category tags
+        due_date:
+          type: string
+          format: date-time
+          description: Due date and time for the task
+        recurring:
+          type: boolean
+          default: false
+          description: Whether the task repeats
+        recurrence_pattern:
+          type: string
+          enum: [daily, weekly, monthly]
+          description: Pattern for recurrence (required when recurring is true)
+    UpdateTaskRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Task title
+        description:
+          type: string
+          description: Optional task description
+        completed:
+          type: boolean
+          description: Whether the task is completed
+        priority:
+          type: string
+          enum: [high, medium, low]
+          description: Priority level of the task
+        tags:
+          type: array
+          items:
+            type: string
+          description: Array of category tags
+        due_date:
+          type: string
+          format: date-time
+          description: Due date and time for the task
+        recurring:
+          type: boolean
+          description: Whether the task repeats
+        recurrence_pattern:
+          type: string
+          enum: [daily, weekly, monthly]
+          description: Pattern for recurrence (required when recurring is true)
+    Error:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+          description: Error message
+    Success:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Success message

@@ -1,0 +1,94 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+.venv/
+env.bak/
+venv.bak/
+
+# Build outputs
+dist/
+build/
+*.min.js
+*.min.css
+.next/
+.nuxt/
+/out/
+
+# Environment variables
+.env*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage
+coverage/
+*.lcov
+.nyc_output/
+
+# Testing
+test-results/
+junit.xml
+coverage-final.json
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python
+*.egg-info/
+.eggs/
+eggs/
+parts/
+develop-eggs/
+.installed.cfg
+.pytest_cache/
+.coverage
+
+# Database
+*.db
+*.db-journal
+
+# Next.js
+.next/
+.cache/
+.output/
+.svelte-kit/
+.c8/
+
+# TypeScript
+*.tsbuildinfo
+*.bak
+
+# Local development
+local/
+tmp/
+temp/

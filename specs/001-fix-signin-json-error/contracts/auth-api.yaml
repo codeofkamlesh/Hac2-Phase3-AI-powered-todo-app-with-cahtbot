@@ -1,0 +1,103 @@
+openapi: 3.0.0
+info:
+  title: Authentication API for Todo App
+  version: 1.0.0
+  description: API for user authentication including login and signup
+
+paths:
+  /api/auth/login:
+    post:
+      summary: Authenticate user and return JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "user@example.com"
+                password:
+                  type: string
+                  example: "password123"
+      responses:
+        '200':
+          description: Successful authentication
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [token, user_id, email]
+                properties:
+                  token:
+                    type: string
+                    description: JWT token for authentication
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  user_id:
+                    type: string
+                    description: Unique identifier for the user
+                    example: "123e4567-e89b-12d3-a456-426614174000"
+                  email:
+                    type: string
+                    format: email
+                    description: User's email address
+                    example: "user@example.com"
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                    example: "Invalid email or password"
+
+  /api/auth/signup:
+    post:
+      summary: Create new user account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, name]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "user@example.com"
+                password:
+                  type: string
+                  example: "password123"
+                name:
+                  type: string
+                  example: "John Doe"
+      responses:
+        '201':
+          description: Account created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [token, user_id, message]
+                properties:
+                  token:
+                    type: string
+                    description: JWT token for authentication
+                  user_id:
+                    type: string
+                    description: Unique identifier for the user
+                  message:
+                    type: string
+                    example: "Account created successfully"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
