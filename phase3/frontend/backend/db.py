@@ -1,7 +1,7 @@
-from sqlmodel import create_engine, Session
-from typing import Generator
 import os
 from dotenv import load_dotenv
+from sqlmodel import create_engine, Session
+from typing import Generator
 
 # Load environment variables from .env file
 load_dotenv()
@@ -49,7 +49,7 @@ def create_db_and_tables():
     Create all database tables if they don't exist
     """
     from sqlmodel import SQLModel
-    from models import User, Task, Conversation, Message
+    from .models import User, Task, Conversation, Message
 
     # Create all tables
     SQLModel.metadata.create_all(engine)

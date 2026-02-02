@@ -50,12 +50,12 @@ export default function ChatWidget() {
         </button>
       </div>
 
-      {/* Main Chat Window */}
+      {/* Main Chat Window - No backdrop, floats above content */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 bg-white dark:bg-gray-900 shadow-2xl border border-gray-200 dark:border-gray-700 rounded-lg w-96 h-[600px] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-5rem)] z-40 flex flex-col sm:inset-auto sm:bottom-24 sm:right-6 sm:w-96 sm:h-[600px]">
+        <div className="fixed bottom-24 right-6 bg-white dark:bg-gray-900 shadow-2xl border border-gray-200 dark:border-gray-700 rounded-lg w-[350px] h-[450px] max-h-[500px] z-40 flex flex-col">
           <div className="flex flex-col h-full">
-            {/* Header with TabManager */}
-            <div className="border-b border-gray-200 dark:border-gray-700 p-2">
+            {/* Compact Header with TabManager */}
+            <div className="border-b border-gray-200 dark:border-gray-700 py-2">
               <TabManager
                 sessions={sessions}
                 activeSessionId={activeSessionId}
@@ -81,14 +81,6 @@ export default function ChatWidget() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Backdrop when chat is open */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-30 z-30"
-          onClick={toggleChat}
-        ></div>
       )}
     </>
   );

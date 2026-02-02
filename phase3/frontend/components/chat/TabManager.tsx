@@ -19,13 +19,13 @@ export default function TabManager({
   onNew
 }: TabManagerProps) {
   return (
-    <div className="flex overflow-x-auto pb-2 hide-scrollbar">
+    <div className="flex overflow-x-auto hide-scrollbar">
       <button
         onClick={onNew}
-        className="flex items-center justify-center h-10 w-10 rounded-l-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 flex-shrink-0"
+        className="flex items-center justify-center h-8 w-8 rounded-l-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 flex-shrink-0"
         aria-label="New chat"
       >
-        <Plus size={18} />
+        <Plus size={16} />
       </button>
       <div className="flex space-x-1">
         {sessions.map((session) => {
@@ -33,7 +33,7 @@ export default function TabManager({
           return (
             <div
               key={session.id}
-              className={`flex items-center min-w-[120px] max-w-xs px-3 py-2 rounded-t-lg text-sm font-medium cursor-pointer ${
+              className={`flex items-center min-w-[100px] max-w-xs px-2 py-1 rounded-t-lg text-xs font-medium cursor-pointer ${
                 isActive
                   ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-200'
                   : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
@@ -49,7 +49,7 @@ export default function TabManager({
                 className="ml-1 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 p-0.5 flex-shrink-0"
                 aria-label={`Close ${session.title}`}
               >
-                <X size={14} />
+                <X size={12} />
               </button>
             </div>
           );

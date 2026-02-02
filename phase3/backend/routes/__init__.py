@@ -1,4 +1,4 @@
 # Routes package initialization
-from . import auth, tasks
+import auth, tasks
 
 __all__ = ["auth", "tasks"]

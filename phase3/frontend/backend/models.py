@@ -20,6 +20,7 @@ class User(SQLModel, table=True):
     # Use sa_column to map snake_case attributes to camelCase DB columns
     id: str = Field(
         default_factory=lambda: str(uuid.uuid4()),
+        primary_key=True,
         sa_column=Column("id", String, primary_key=True)
     )
     name: Optional[str] = Field(
@@ -53,7 +54,8 @@ class Task(SQLModel, table=True):
 
     id: Optional[int] = Field(
         default=None,
-        sa_column=Column("id", Integer, primary_key=True, autoincrement=True)  # SERIAL for auto-increment
+        primary_key=True,
+        sa_column=Column("id", Integer, primary_key=True)  # SERIAL for auto-increment
     )
     user_id: str = Field(
         sa_column=Column("userId", String, nullable=False)
@@ -102,6 +104,7 @@ class Conversation(SQLModel, table=True):
 
     id: str = Field(
         default_factory=lambda: str(uuid.uuid4()),
+        primary_key=True,
         sa_column=Column("id", String, primary_key=True)
     )
     user_id: str = Field(
@@ -128,6 +131,7 @@ class Message(SQLModel, table=True):
 
     id: str = Field(
         default_factory=lambda: str(uuid.uuid4()),
+        primary_key=True,
         sa_column=Column("id", String, primary_key=True)
     )
     conversation_id: str = Field(
