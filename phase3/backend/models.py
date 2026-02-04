@@ -82,7 +82,15 @@ class Task(SQLModel, table=True):
         default=None,
         sa_column=Column("dueDate", DateTime)
     )
-    recurring_interval: Optional[str] = Field(  # Changed to match the original schema
+    recurring: bool = Field(
+        default=False,
+        sa_column=Column("recurring", Boolean, nullable=False, default=False)
+    )
+    recurrence_pattern: Optional[str] = Field(
+        default=None,
+        sa_column=Column("recurrencePattern", String)
+    )
+    recurring_interval: Optional[str] = Field(  # Keep for backward compatibility
         default=None,
         sa_column=Column("recurringInterval", String)
     )

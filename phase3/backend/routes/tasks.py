@@ -8,7 +8,7 @@ import jwt
 import os
 import json
 from db import get_session
-from models.task import Task
+from models import Task
 from middleware.auth_middleware import get_current_user_id
 from services.task_service import TaskService
 

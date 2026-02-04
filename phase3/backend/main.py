@@ -515,6 +515,64 @@ def health_check():
     return {"status": "ok", "database": "connected", "ai_backend": "ready"}
 
 
+# GET endpoint to retrieve user's conversations
+@app.get("/api/conversations/{user_id}")
+def get_user_conversations(user_id: str, session: Session = Depends(lambda: next(get_session()))):
+    """
+    Retrieve all conversations for a specific user, ordered by created_at desc.
+    Returns: [{id, title, updated_at}, ...]
+    """
+    try:
+        # Query conversations for the user, ordered by created_at descending
+        statement = select(Conversation).where(Conversation.user_id == user_id).order_by(Conversation.created_at.desc())
+        conversations = session.exec(statement).all()
+
+        # Format the response
+        result = []
+        for conv in conversations:
+            result.append({
+                "id": conv.id,
+                "title": conv.title,
+                "updated_at": conv.created_at.isoformat() if conv.created_at else None  # Use created_at since updated_at may not exist yet
+            })
+
+        return result
+    except Exception as e:
+        print(f"Error retrieving conversations: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving conversations: {str(e)}")
+
+
+# GET endpoint to retrieve messages for a specific conversation
+@app.get("/api/conversations/{conversation_id}/messages")
+def get_conversation_messages(conversation_id: str, session: Session = Depends(lambda: next(get_session()))):
+    """
+    Retrieve all messages for a specific conversation, ordered by created_at asc.
+    Returns: [{id, role, content, created_at}, ...]
+    """
+    try:
+        # Query messages for the conversation, ordered by created_at ascending
+        messages = session.exec(
+            select(Message)
+            .where(Message.conversation_id == conversation_id)
+            .order_by(Message.created_at.asc())
+        ).all()
+
+        # Format the response
+        result = []
+        for msg in messages:
+            result.append({
+                "id": msg.id,
+                "role": msg.role.value if hasattr(msg.role, 'value') else msg.role,
+                "content": msg.content,
+                "created_at": msg.created_at.isoformat()
+            })
+
+        return result
+    except Exception as e:
+        print(f"Error retrieving messages: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving messages: {str(e)}")
+
+
 # Import db module (assuming it exists)
 try:
     import db

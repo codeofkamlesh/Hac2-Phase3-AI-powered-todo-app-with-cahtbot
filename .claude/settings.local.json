@@ -161,7 +161,12 @@
       "Bash(python3 test_robust_tools.py)",
       "Bash(python3 test_recurrence_fix.py)",
       "Bash(python3 quick_verify.py)",
-      "Bash(python3 test_complex_add_task.py)"
+      "Bash(python3 test_complex_add_task.py)",
+      "Bash(find . -name \"*.py\" -exec grep -l \"class.*Task.*SQLModel\" {} ;)",
+      "Bash(python3 test_recurrence_fix_correct.py)",
+      "Bash(python3 verify_history.py)",
+      "Bash(python -c \"import main; print\\(''Import successful''\\)\")",
+      "Bash(python3 -c \"import main; print\\(''Import successful''\\)\")"
     ]
   }
 }

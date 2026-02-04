@@ -96,6 +96,9 @@ def add_task(session: Session, title: str, description: Optional[str] = None, pr
             elif recurrence_val in ['yearly', 'annually', 'every year']:
                 recurrence_val = 'yearly'
 
+        # Set recurring flag based on whether there's a recurrence pattern
+        recurring_flag = bool(recurrence_val)
+
         # Create new task with all attributes
         new_task = Task(
             user_id=user_id,  # Use the provided user_id
@@ -105,7 +108,9 @@ def add_task(session: Session, title: str, description: Optional[str] = None, pr
             priority=priority_enum,
             due_date=parsed_due_date,  # Use parsed date
             tags=tags,
-            recurring_interval=recurrence_val,  # Use normalized recurrence value
+            recurring=recurring_flag,  # Set boolean flag based on recurrence value
+            recurrence_pattern=recurrence_val,  # Use normalized recurrence value
+            recurring_interval=None,  # Clear the old field
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
         )
@@ -127,7 +132,8 @@ def add_task(session: Session, title: str, description: Optional[str] = None, pr
                 "priority": new_task.priority.value if hasattr(new_task.priority, 'value') else new_task.priority,
                 "due_date": new_task.due_date.isoformat() if new_task.due_date else None,
                 "tags": new_task.tags,
-                "recurring_interval": new_task.recurring_interval
+                "recurring": new_task.recurring,
+                "recurrence_pattern": new_task.recurrence_pattern
             }
         }
     except Exception as e:
@@ -378,16 +384,25 @@ def update_task(session: Session, task_id: str, updates: Dict[str, Any], user_id
             except (ValueError, TypeError):
                 print(f"⚠️ Warning: Could not parse due date '{updates['due_date']}', keeping original value")
 
-        # Step D (Mapping): Keep the existing recurrencePattern mapping logic
-        # Normalize Parameters (Map AI guesses to 'recurrencePattern' as specified in schema)
+        # Step D (Mapping): Fix recurrence logic to map to correct columns
+        # Normalize Parameters (Map AI guesses to the CORRECT columns)
         # AI often sends these keys that should map to the recurrencePattern column:
-        keys_to_map = ['recurrance_pattern', 'recurring_pattern', 'recurring_interval', 'repeat', 'frequency', 'pattern']
+        recurrence_keys = ['recurrance_pattern', 'recurring_pattern', 'recurring_interval', 'repeat', 'frequency', 'pattern', 'recurringInterval', 'recurring_interval']
 
-        for key in keys_to_map:
+        new_pattern = None
+        for key in recurrence_keys:
             if key in updates:
-                # Move the value to the correct column
-                updates['recurring_interval'] = updates.pop(key)
-                break # Only map the first one found
+                new_pattern = updates.pop(key)
+                break
+
+        # If a pattern was found, Apply the FIX:
+        if new_pattern:
+            # A. Set the correct text column
+            updates['recurrence_pattern'] = new_pattern
+            # B. CRITICAL: Set the boolean flag to True
+            updates['recurring'] = True
+            # C. Clear the incorrect column (optional cleanup)
+            updates['recurring_interval'] = None
 
         # Map 'tag' to 'tags'
         if 'tag' in updates:
@@ -414,6 +429,15 @@ def update_task(session: Session, task_id: str, updates: Dict[str, Any], user_id
         if "due_date" in updates:
             # Use the parsed date
             task.due_date = updates["due_date"]
+        if "recurring" in updates:
+            # Ensure the value is properly converted to boolean
+            val = updates["recurring"]
+            if isinstance(val, str):
+                task.recurring = val.lower() in ['true', '1', 'yes', 'on']
+            else:
+                task.recurring = bool(val)
+        if "recurrence_pattern" in updates:
+            task.recurrence_pattern = updates["recurrence_pattern"]
         if "recurring_interval" in updates:
             task.recurring_interval = updates["recurring_interval"]
         if "tags" in updates:
@@ -434,7 +458,9 @@ def update_task(session: Session, task_id: str, updates: Dict[str, Any], user_id
                 "description": task.description,
                 "completed": task.completed,
                 "priority": task.priority.value if hasattr(task.priority, 'value') else task.priority,
-                "due_date": task.due_date.isoformat() if task.due_date else None
+                "due_date": task.due_date.isoformat() if task.due_date else None,
+                "recurring": task.recurring,
+                "recurrence_pattern": task.recurrence_pattern
             }
         }
     except Exception as e:

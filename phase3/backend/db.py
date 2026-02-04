@@ -51,9 +51,29 @@ def create_db_and_tables():
     from sqlmodel import SQLModel
     # Import models to register them with SQLModel metadata
     from models import User, Task, Conversation, Message
+    import sqlalchemy.exc
 
-    # Create all tables
-    SQLModel.metadata.create_all(engine)
+    try:
+        # Create all tables
+        SQLModel.metadata.create_all(engine)
+
+        # Try to add the updatedAt column to conversations table if it doesn't exist
+        with engine.connect() as conn:
+            # Check if column exists first
+            try:
+                # This query will fail if the column doesn't exist
+                conn.execute(text("SELECT \"updatedAt\" FROM conversations LIMIT 1"))
+            except sqlalchemy.exc.ProgrammingError:
+                # Column doesn't exist, add it
+                try:
+                    conn.execute(text("ALTER TABLE conversations ADD COLUMN \"updatedAt\" TIMESTAMP DEFAULT NOW()"))
+                    conn.commit()
+                    print("✅ Added updatedAt column to conversations table")
+                except Exception as e:
+                    print(f"Info: Could not add updatedAt column (might already exist): {e}")
+    except Exception as e:
+        print(f"Error creating database tables: {e}")
+        raise
 
 
 def test_connection():
