@@ -7,10 +7,33 @@ from sqlmodel import Session, select
 from typing import Dict, Any, Optional
 from datetime import datetime
 import uuid
+from dateutil import parser  # for smart date parsing
 from models import Task, User, Conversation, Message, PriorityEnum, MessageRoleEnum
 
 
-def add_task(session: Session, title: str, description: Optional[str] = None, priority: str = "medium", user_id: str = "") -> Dict[str, Any]:
+def resolve_task_id(session: Session, user_id: str, identifier: str | int) -> int | None:
+    """
+    Resolve a task identifier (either ID or title) to a database task ID.
+
+    Args:
+        session: Database session
+        user_id: User ID to scope the search
+        identifier: Either a task ID (int) or title (str)
+
+    Returns:
+        Database task ID if found, None otherwise
+    """
+    # Try converting to int (Direct ID)
+    try:
+        return int(identifier)
+    except ValueError:
+        # It's a title, look it up
+        statement = select(Task).where(Task.title == str(identifier), Task.user_id == user_id)
+        task = session.exec(statement).first()
+        return task.id if task else None
+
+
+def add_task(session: Session, title: str, description: Optional[str] = None, priority: str = "medium", due_date: Optional[str] = None, dueDate: Optional[str] = None, tags: Optional[str] = None, recurring: Optional[str] = None, completed: bool = False, user_id: str = "") -> Dict[str, Any]:
     """
     Add a new task to the database
 
@@ -19,12 +42,17 @@ def add_task(session: Session, title: str, description: Optional[str] = None, pr
         title: Task title
         description: Optional task description
         priority: Task priority ('high', 'medium', 'low')
+        due_date: Optional due date string to parse (alternative param name)
+        dueDate: Optional due date string to parse (alternative param name)
+        tags: Optional tags for the task
+        recurring: Optional recurring interval pattern
+        completed: Whether the task is initially completed
         user_id: User ID to associate with the task
 
     Returns:
         Dictionary with success status and task info
     """
-    print(f"🛠️ Executing Tool: add_task with Params: {{'title': '{title}', 'description': '{description}', 'priority': '{priority}', 'user_id': '{user_id}'}}")
+    print(f"🛠️ Executing Tool: add_task with Params: {{'title': '{title}', 'description': '{description}', 'priority': '{priority}', 'due_date': '{due_date}', 'dueDate': '{dueDate}', 'tags': '{tags}', 'recurring': '{recurring}', 'completed': {completed}, 'user_id': '{user_id}'}}")
     try:
         # Validate priority
         if priority not in ["high", "medium", "low"]:
@@ -41,15 +69,43 @@ def add_task(session: Session, title: str, description: Optional[str] = None, pr
         else:
             priority_enum = PriorityEnum(priority)
 
-        # Create new task
+        # Use whichever due date parameter is provided (dueDate takes precedence over due_date)
+        effective_due_date = dueDate if dueDate is not None else due_date
+
+        # Parse due_date if provided
+        parsed_due_date = None
+        if effective_due_date:
+            try:
+                parsed_due_date = parser.parse(effective_due_date)
+            except (ValueError, TypeError):
+                print(f"⚠️ Warning: Could not parse due date '{effective_due_date}', using None")
+                parsed_due_date = None
+
+        # Normalize Recurrence (map AI variations to proper values)
+        recurrence_val = recurring
+        if recurrence_val:
+            # Normalize common AI variations
+            recurrence_val = recurrence_val.lower()
+            # Map common variations to standard values
+            if recurrence_val in ['daily', 'every day', 'each day']:
+                recurrence_val = 'daily'
+            elif recurrence_val in ['weekly', 'every week', 'each week']:
+                recurrence_val = 'weekly'
+            elif recurrence_val in ['monthly', 'every month', 'each month']:
+                recurrence_val = 'monthly'
+            elif recurrence_val in ['yearly', 'annually', 'every year']:
+                recurrence_val = 'yearly'
+
+        # Create new task with all attributes
         new_task = Task(
             user_id=user_id,  # Use the provided user_id
             title=title,
             description=description,
-            completed=False,
+            completed=completed,
             priority=priority_enum,
-            due_date=None,  # Would be parsed from user request if needed
-            recurring_interval=None,
+            due_date=parsed_due_date,  # Use parsed date
+            tags=tags,
+            recurring_interval=recurrence_val,  # Use normalized recurrence value
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
         )
@@ -61,14 +117,17 @@ def add_task(session: Session, title: str, description: Optional[str] = None, pr
         print("✅ Tool Execution Successful")
         return {
             "success": True,
-            "message": f"Task '{title}' added successfully",
+            "message": f"Task '{title}' added successfully with ID {new_task.id}",
             "task_id": new_task.id,
             "task": {
                 "id": new_task.id,
                 "title": new_task.title,
                 "description": new_task.description,
                 "completed": new_task.completed,
-                "priority": new_task.priority.value if hasattr(new_task.priority, 'value') else new_task.priority
+                "priority": new_task.priority.value if hasattr(new_task.priority, 'value') else new_task.priority,
+                "due_date": new_task.due_date.isoformat() if new_task.due_date else None,
+                "tags": new_task.tags,
+                "recurring_interval": new_task.recurring_interval
             }
         }
     except Exception as e:
@@ -146,7 +205,7 @@ def complete_task(session: Session, task_id: str, user_id: str = "") -> Dict[str
 
     Args:
         session: Database session
-        task_id: ID of the task to complete
+        task_id: ID or title of the task to complete
         user_id: User ID to verify task ownership
 
     Returns:
@@ -154,8 +213,18 @@ def complete_task(session: Session, task_id: str, user_id: str = "") -> Dict[str
     """
     print(f"🛠️ Executing Tool: complete_task with Params: {{'task_id': '{task_id}', 'user_id': '{user_id}'}}")
     try:
-        # Find the task
-        query = select(Task).where(Task.id == int(task_id))
+        # Use resolve_task_id to handle both IDs and titles
+        db_task_id = resolve_task_id(session, user_id, task_id)
+
+        if db_task_id is None:
+            print(f"❌ Tool Failed: Task '{task_id}' not found or does not belong to user {user_id}")
+            return {
+                "success": False,
+                "message": f"Task '{task_id}' not found"
+            }
+
+        # Find the task using the resolved ID
+        query = select(Task).where(Task.id == db_task_id)
 
         # If user_id is provided, ensure the task belongs to the user
         if user_id:
@@ -164,10 +233,10 @@ def complete_task(session: Session, task_id: str, user_id: str = "") -> Dict[str
         task = session.exec(query).first()
 
         if not task:
-            print(f"❌ Tool Failed: Task with ID {task_id} not found or does not belong to user {user_id}")
+            print(f"❌ Tool Failed: Task with ID {db_task_id} not found or does not belong to user {user_id}")
             return {
                 "success": False,
-                "message": f"Task with ID {task_id} not found"
+                "message": f"Task with ID {db_task_id} not found"
             }
 
         # Update task status
@@ -202,7 +271,7 @@ def delete_task(session: Session, task_id: str, user_id: str = "") -> Dict[str, 
 
     Args:
         session: Database session
-        task_id: ID of the task to delete
+        task_id: ID or title of the task to delete
         user_id: User ID to verify task ownership
 
     Returns:
@@ -210,8 +279,18 @@ def delete_task(session: Session, task_id: str, user_id: str = "") -> Dict[str, 
     """
     print(f"🛠️ Executing Tool: delete_task with Params: {{'task_id': '{task_id}', 'user_id': '{user_id}'}}")
     try:
-        # Find the task
-        query = select(Task).where(Task.id == int(task_id))
+        # Use resolve_task_id to handle both IDs and titles
+        db_task_id = resolve_task_id(session, user_id, task_id)
+
+        if db_task_id is None:
+            print(f"❌ Tool Failed: Task '{task_id}' not found or does not belong to user {user_id}")
+            return {
+                "success": False,
+                "message": f"Task '{task_id}' not found"
+            }
+
+        # Find the task using the resolved ID
+        query = select(Task).where(Task.id == db_task_id)
 
         # If user_id is provided, ensure the task belongs to the user
         if user_id:
@@ -220,10 +299,10 @@ def delete_task(session: Session, task_id: str, user_id: str = "") -> Dict[str, 
         task = session.exec(query).first()
 
         if not task:
-            print(f"❌ Tool Failed: Task with ID {task_id} not found or does not belong to user {user_id}")
+            print(f"❌ Tool Failed: Task with ID {db_task_id} not found or does not belong to user {user_id}")
             return {
                 "success": False,
-                "message": f"Task with ID {task_id} not found"
+                "message": f"Task with ID {db_task_id} not found"
             }
 
         # Delete the task
@@ -250,7 +329,7 @@ def update_task(session: Session, task_id: str, updates: Dict[str, Any], user_id
 
     Args:
         session: Database session
-        task_id: ID of the task to update
+        task_id: ID or title of the task to update
         updates: Dictionary of fields to update
         user_id: User ID to verify task ownership
 
@@ -259,8 +338,19 @@ def update_task(session: Session, task_id: str, updates: Dict[str, Any], user_id
     """
     print(f"🛠️ Executing Tool: update_task with Params: {{'task_id': '{task_id}', 'updates': {updates}, 'user_id': '{user_id}'}}")
     try:
-        # Find the task
-        query = select(Task).where(Task.id == int(task_id))
+        # Step A: Resolve the task ID (handles both IDs and titles)
+        db_task_id = resolve_task_id(session, user_id, task_id)
+
+        # Step B: If db_task_id is None, return "Task not found."
+        if db_task_id is None:
+            print(f"❌ Tool Failed: Task '{task_id}' not found or does not belong to user {user_id}")
+            return {
+                "success": False,
+                "message": f"Task '{task_id}' not found"
+            }
+
+        # Find the task using the resolved ID
+        query = select(Task).where(Task.id == db_task_id)
 
         # If user_id is provided, ensure the task belongs to the user
         if user_id:
@@ -269,13 +359,41 @@ def update_task(session: Session, task_id: str, updates: Dict[str, Any], user_id
         task = session.exec(query).first()
 
         if not task:
-            print(f"❌ Tool Failed: Task with ID {task_id} not found or does not belong to user {user_id}")
+            print(f"❌ Tool Failed: Task with ID {db_task_id} not found or does not belong to user {user_id}")
             return {
                 "success": False,
-                "message": f"Task with ID {task_id} not found"
+                "message": f"Task with ID {db_task_id} not found"
             }
 
-        # Apply updates
+        # Step C (Date Parsing): Check for dueDate or due_date in updates
+        if "dueDate" in updates:
+            try:
+                updates["due_date"] = parser.parse(updates["dueDate"])
+                del updates["dueDate"]  # Remove the old key
+            except (ValueError, TypeError):
+                print(f"⚠️ Warning: Could not parse due date '{updates['dueDate']}', keeping original value")
+        elif "due_date" in updates:
+            try:
+                updates["due_date"] = parser.parse(updates["due_date"])
+            except (ValueError, TypeError):
+                print(f"⚠️ Warning: Could not parse due date '{updates['due_date']}', keeping original value")
+
+        # Step D (Mapping): Keep the existing recurrencePattern mapping logic
+        # Normalize Parameters (Map AI guesses to 'recurrencePattern' as specified in schema)
+        # AI often sends these keys that should map to the recurrencePattern column:
+        keys_to_map = ['recurrance_pattern', 'recurring_pattern', 'recurring_interval', 'repeat', 'frequency', 'pattern']
+
+        for key in keys_to_map:
+            if key in updates:
+                # Move the value to the correct column
+                updates['recurring_interval'] = updates.pop(key)
+                break # Only map the first one found
+
+        # Map 'tag' to 'tags'
+        if 'tag' in updates:
+            updates['tags'] = updates.pop('tag')
+
+        # Step E: Apply updates
         if "title" in updates and updates["title"]:
             task.title = updates["title"]
         if "description" in updates:
@@ -294,8 +412,12 @@ def update_task(session: Session, task_id: str, updates: Dict[str, Any], user_id
             else:
                 task.priority = PriorityEnum(priority_value)
         if "due_date" in updates:
-            # This would require parsing the date string appropriately
+            # Use the parsed date
             task.due_date = updates["due_date"]
+        if "recurring_interval" in updates:
+            task.recurring_interval = updates["recurring_interval"]
+        if "tags" in updates:
+            task.tags = updates["tags"]
 
         task.updated_at = datetime.utcnow()
         session.add(task)
@@ -311,7 +433,8 @@ def update_task(session: Session, task_id: str, updates: Dict[str, Any], user_id
                 "title": task.title,
                 "description": task.description,
                 "completed": task.completed,
-                "priority": task.priority.value if hasattr(task.priority, 'value') else task.priority
+                "priority": task.priority.value if hasattr(task.priority, 'value') else task.priority,
+                "due_date": task.due_date.isoformat() if task.due_date else None
             }
         }
     except Exception as e:

@@ -147,7 +147,21 @@
       "Bash(curl -s -X POST http://localhost:8000/api/chat -H \"Content-Type: application/json\" -d '{\"\"message\"\": \"\"Add a task to buy eggs\"\", \"\"user_id\"\": \"\"test_user_123\"\"}')",
       "Bash(timeout 60s python verify_chatbot.py)",
       "Bash(curl -s -X POST http://localhost:8000/api/chat -H \"Content-Type: application/json\" -d '{\"\"message\"\": \"\"Update the task Buy milk to completed\"\", \"\"user_id\"\": \"\"test_user_123\"\"}')",
-      "Bash(./venv/bin/python simple_test.py)"
+      "Bash(./venv/bin/python simple_test.py)",
+      "Bash(./venv/bin/python test_recurrence_fix.py)",
+      "Bash(curl -s -X POST http://localhost:8000/api/chat -H \"Content-Type: application/json\" -d '{\"\"message\"\": \"\"Update the task Schedule weekly backup to add a recurring pattern of weekly\"\", \"\"user_id\"\": \"\"test_user_123\"\"}')",
+      "Bash(./venv/bin/pip install python-dateutil)",
+      "Bash(./venv/bin/python test_robust_tools.py)",
+      "Bash(curl -s -X POST http://localhost:8000/api/chat -H \"Content-Type: application/json\" -d '{\"\"message\"\": \"\"Add a task called Test Task with a due date of 2023-12-25\"\", \"\"user_id\"\": \"\"test_user_123\"\"}')",
+      "Bash(curl -s -X POST http://localhost:8000/api/chat -H \"Content-Type: application/json\" -d '{\"\"message\"\": \"\"Update the task Test Task to have a priority of high\"\", \"\"user_id\"\": \"\"test_user_123\"\"}')",
+      "Bash(curl -s -X POST http://localhost:8000/api/chat -H \"Content-Type: application/json\" -d '{\"\"message\"\": \"\"Delete the task Test Task\"\", \"\"user_id\"\": \"\"test_user_123\"\"}')",
+      "Bash(curl -s -X POST http://localhost:8000/api/chat -H \"Content-Type: application/json\" -d '{\"\"message\"\": \"\"Add a task called Meeting Prep with due date 2023-12-30\"\", \"\"user_id\"\": \"\"test_user_123\"\"}')",
+      "Bash(python verify_full_capabilities.py)",
+      "Bash(python3 verify_full_capabilities.py)",
+      "Bash(python3 test_robust_tools.py)",
+      "Bash(python3 test_recurrence_fix.py)",
+      "Bash(python3 quick_verify.py)",
+      "Bash(python3 test_complex_add_task.py)"
     ]
   }
 }

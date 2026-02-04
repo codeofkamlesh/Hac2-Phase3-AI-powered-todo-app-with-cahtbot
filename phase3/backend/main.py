@@ -228,6 +228,27 @@ async def chat_endpoint(
                         "type": "str",
                         "required": False,
                         "default": "medium"
+                    },
+                    "dueDate": {
+                        "description": "Due date for the task (various formats accepted)",
+                        "type": "str",
+                        "required": False
+                    },
+                    "tags": {
+                        "description": "Tags for the task (comma separated if multiple)",
+                        "type": "str",
+                        "required": False
+                    },
+                    "recurring": {
+                        "description": "Recurring pattern ('daily', 'weekly', 'monthly', 'yearly')",
+                        "type": "str",
+                        "required": False
+                    },
+                    "completed": {
+                        "description": "Whether the task is initially completed",
+                        "type": "bool",
+                        "required": False,
+                        "default": False
                     }
                 }
             },
